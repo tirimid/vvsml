@@ -1,0 +1,3 @@
+.define_macro{hi}{with macros!}
+
+text{nested file inclusions! .macro{hi}}

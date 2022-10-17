@@ -1,0 +1,32 @@
+.define_macro{this is a macro name}{these are macro contents}
+.define_macro{macro with a \} in it}{and this one has a \{}
+
+main{
+    chapter{this is a very big header}
+    section{this is a slightly smaller header}
+    subsection{this is a small header}
+    text{you can even put curly braces (\{, \}) in text using escape characters}
+    text{
+        testing macros here:
+        .macro{this is a macro name}
+        .macro{macro with a \} in it}
+    }
+    text{
+        testing links here:
+        .link{google dot com link}{https://google.com/}
+        .link{this is youtube}{https://youtube.com/}
+    }
+    text{
+        testing formatting here:
+        .format{b}{bold text}
+        .format{i}{italic text}
+        .format{_}{subscript text}
+        .format{^}{superscript text}
+        /.format{x}{Eks samp@}/
+        .format{bi}{bold, italic text}
+        .format{i^}{italic, superscript text}
+        .format{bi_}{bold, italic, and subscript text}
+        [.format{bix^}{O:l @v DIm}]
+    }
+    .include{design/included.vvsml}
+}
