@@ -108,7 +108,17 @@ pub enum Token {
 
     #[token("text")]
     Text,
-    
+
+    #[token("list")]
+    List,
+
+    #[token("table")]
+    Table,
+
+    #[token("row")]
+    Row,
+
+    // other / generally applicable tokens.
     #[token("{")]
     BlockStart,
 

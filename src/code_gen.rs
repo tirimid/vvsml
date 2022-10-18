@@ -20,6 +20,11 @@ fn node_to_html(node: &Node, mut base: String) -> String {
             tag_map.insert(NodeType::Section, gen_html_tag_pair("h2"));
             tag_map.insert(NodeType::Subsection, gen_html_tag_pair("h3"));
             tag_map.insert(NodeType::Text, gen_html_tag_pair("p"));
+            tag_map.insert(NodeType::List, gen_html_tag_pair("ul"));
+            tag_map.insert(NodeType::ListItem, gen_html_tag_pair("li"));
+            tag_map.insert(NodeType::Table, gen_html_tag_pair("table"));
+            tag_map.insert(NodeType::TableRow, gen_html_tag_pair("tr"));
+            tag_map.insert(NodeType::TableRowItem, gen_html_tag_pair("td"));
 
             tag_map
         };
