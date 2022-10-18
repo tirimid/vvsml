@@ -29,4 +29,11 @@ main{
         [.format{bix^}{O:l @v DIm}]
     }
     .include{design/included.vvsml}
+    text{
+        testing escape sequence deprotection in postprocessing:
+        @#':[;:LB]
+        @#':[;:RB]
+        @#':[;:BS]
+        @#':[;:P_]
+    }
 }

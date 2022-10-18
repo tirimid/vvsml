@@ -1,14 +1,12 @@
 use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
-use std::fmt;
 use std::fs;
 
-use logos::{Lexer, Logos};
+use logos::Logos;
 
 use crate::lazy_regex;
 use crate::lang_util;
 use crate::ipa_trans;
-use crate::lang_util::FindRev;
+use crate::lang_util::{FindRev, Token};
 use crate::ipa_trans::IpaTranslate;
 
 // "protected" escape characters are deprotected during postprocessing.
@@ -16,7 +14,7 @@ use crate::ipa_trans::IpaTranslate;
 // `\{` => `@#':[;:LB]`
 // `\}` => `@#':[;:RB]`
 // `\\` => `@#':[;:BS]`
-// `\.` => `@#':[;:P]`
+// `\.` => `@#':[;:P_]`
 fn protect_escape(src: &str) -> String {
     lazy_regex! {
         BACKSLASH = r"\\[\s\S]?";
@@ -33,7 +31,7 @@ fn protect_escape(src: &str) -> String {
             '{' => "@#':[;:LB]",
             '}' => "@#':[;:RB]",
             '\\' => "@#':[;:BS]",
-            '.' => "@#':[;:P]",
+            '.' => "@#':[;:P_]",
             _ => lang_util::error(&format!("{} cannot be escaped!", escape_ch)),
         };
 
@@ -63,77 +61,6 @@ fn verify_brace_balance(src: &str) {
     }
 }
 
-#[derive(Logos, PartialEq)]
-enum Token {
-    #[token(".define_macro")]
-    DefineMacro,
-
-    #[token(".macro")]
-    Macro,
-
-    #[token(".include")]
-    Include,
-
-    #[token(".link")]
-    Link,
-
-    #[token(".format")]
-    Format,
-
-    #[token("{")]
-    BlockStart,
-
-    #[token("}")]
-    BlockEnd,
-
-    #[error]
-    Error,
-}
-
-impl Display for Token {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let text = match self {
-            Token::DefineMacro => "macro definition",
-            Token::Macro => "macro substitution",
-            Token::Include => "file inclusion",
-            Token::Link => "link",
-            Token::BlockStart => "block start",
-            Token::BlockEnd => "block end",
-            _ => "other",
-        };
-
-        write!(f, "{}", text)
-    }
-}
-
-fn skip_block(lex: &mut Lexer<Token>) {
-    while let Some(tok) = lex.next() {
-        match tok {
-            Token::BlockStart => skip_block(lex),
-            Token::BlockEnd => break,
-            _ => (),
-        }
-    }
-}
-
-fn expect_token(lex: &mut Lexer<Token>, expected: Token) {
-    match lex.next() {
-        None => lang_util::error("expecting token when none available"),
-        Some(tok) => if tok != expected {
-            lang_util::error(&format!("expected {}, found {}", expected, tok));
-        }
-    }
-}
-
-fn extract_arg(lex: &mut Lexer<Token>, src: &str) -> String {
-    expect_token(lex, Token::BlockStart);
-    let start = lex.span().end;
-    skip_block(lex);
-    let end = lex.span().start;
-
-    src[start..end].to_string()
-}
-
 fn fulfill_macros(src: &str) -> String {
     let mut src = src.to_string();
     
@@ -146,8 +73,8 @@ fn fulfill_macros(src: &str) -> String {
         }
         
         let def_start = lex.span().start;
-        let name = extract_arg(&mut lex, &src);
-        let conts = extract_arg(&mut lex, &src);
+        let name = lang_util::extract_arg(&mut lex, &src);
+        let conts = lang_util::extract_arg(&mut lex, &src);
         let def_end = lex.span().end;
 
         macro_defs.insert(name, conts);
@@ -164,7 +91,7 @@ fn fulfill_macros(src: &str) -> String {
         }
 
         let macro_start = lex.span().start;
-        let name = extract_arg(&mut lex, &src);
+        let name = lang_util::extract_arg(&mut lex, &src);
         let macro_end = lex.span().end;
 
         let conts = match macro_defs.get(&name) {
@@ -190,7 +117,7 @@ fn fulfill_includes(src: &str) -> String {
         }
 
         let include_start = lex.span().start;
-        let path = extract_arg(&mut lex, &src);
+        let path = lang_util::extract_arg(&mut lex, &src);
         let include_end = lex.span().end;
 
         let file_conts = match fs::read_to_string(&path) {
@@ -215,8 +142,8 @@ fn fulfill_links(src: &str) -> String {
         }
         
         let link_start = lex.span().start;
-        let name = extract_arg(&mut lex, &src);
-        let dst = extract_arg(&mut lex, &src);
+        let name = lang_util::extract_arg(&mut lex, &src);
+        let dst = lang_util::extract_arg(&mut lex, &src);
         let link_end = lex.span().end;
 
         src.replace_range(
@@ -268,8 +195,8 @@ fn fulfill_formats(src: &str) -> String {
         }
         
         let fmt_start = lex.span().start;
-        let spec = extract_arg(&mut lex, &src);
-        let text = extract_arg(&mut lex, &src);
+        let spec = lang_util::extract_arg(&mut lex, &src);
+        let text = lang_util::extract_arg(&mut lex, &src);
         let fmt_end = lex.span().end;
 
         src.replace_range(fmt_start..fmt_end, &single_format(&spec, &text));
@@ -310,12 +237,17 @@ pub fn preprocess(src: &str) -> String {
     let mut src = protect_escape(src);
     verify_brace_balance(&src);
 
+    let mut pass = 1;
     while work_left_to_do(&src) {
+        lang_util::log(&format!("pass: {}", pass));
+        
         for stage in pipeline {
             src = stage(&src);
             src = protect_escape(&src);
             verify_brace_balance(&src);
         }
+
+        pass += 1;
     }
 
     lang_util::log("preprocessing complete");

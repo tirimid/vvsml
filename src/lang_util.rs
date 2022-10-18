@@ -1,7 +1,10 @@
 use std::process;
+use std::fmt::{Formatter, Display};
+use std::fmt;
 
 use regex::{Regex, Match};
 use colored::Colorize;
+use logos::{Logos, Lexer};
 
 pub trait FindRev {
     fn find_rev<'a>(&self, text: &'a str) -> Vec<Match<'a>>;
@@ -70,4 +73,98 @@ pub fn warning(msg: &str) {
 pub fn error(msg: &str) -> ! {
     println!("{}: {}", "[ ERROR ]".red().bold(), msg);
     process::exit(-1);
+}
+
+#[derive(Logos, PartialEq)]
+pub enum Token {
+    // preprocessor tokens.
+    #[token(".define_macro")]
+    DefineMacro,
+
+    #[token(".macro")]
+    Macro,
+
+    #[token(".include")]
+    Include,
+
+    #[token(".link")]
+    Link,
+
+    #[token(".format")]
+    Format,
+
+    // main language tokens.
+    #[token("main")]
+    Main,
+
+    #[token("chapter")]
+    Chapter,
+
+    #[token("section")]
+    Section,
+
+    #[token("subsection")]
+    Subsection,
+
+    #[token("text")]
+    Text,
+    
+    #[token("{")]
+    BlockStart,
+
+    #[token("}")]
+    BlockEnd,
+
+    #[error]
+    Error,
+}
+
+impl Display for Token {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let text = match self {
+            Token::DefineMacro => "macro definition",
+            Token::Macro => "macro substitution",
+            Token::Include => "file inclusion",
+            Token::Link => "link",
+            Token::Main => "main",
+            Token::Chapter => "chapter",
+            Token::Section => "section",
+            Token::Subsection => "subsection",
+            Token::Text => "text",
+            Token::BlockStart => "block start",
+            Token::BlockEnd => "block end",
+            _ => "other",
+        };
+
+        write!(f, "{}", text)
+    }
+}
+
+fn skip_block(lex: &mut Lexer<Token>) {
+    while let Some(tok) = lex.next() {
+        match tok {
+            Token::BlockStart => skip_block(lex),
+            Token::BlockEnd => break,
+            _ => (),
+        }
+    }
+}
+
+pub fn expect_token(lex: &mut Lexer<Token>, expected: Token) {
+    match lex.next() {
+        None => error("expecting token when none available"),
+        Some(tok) => if tok != expected {
+            error(&format!("expected {}, found {}", expected, tok));
+        }
+    }
+}
+
+pub fn extract_arg(lex: &mut Lexer<Token>, src: &str) -> String {
+    expect_token(lex, Token::BlockStart);
+    
+    let start = lex.span().end;
+    skip_block(lex);
+    let end = lex.span().start;
+
+    src[start..end].to_string()
 }
