@@ -171,6 +171,14 @@ fn single_fmt(file_path: &str, line: usize, spec: &str, text: &str) -> String {
     };
 
     for ch in spec.chars() {
+        // a format specifier is only used once.
+        // as to say, specification `bbbii_^^^^` is the same as `bi_^`.
+        if spec_cnt.insert(ch, true) != None {
+            let warn_msg = format!("format specifier {} is redundant", ch);
+            warning!(file_path, line, warn_msg);
+            continue;
+        }
+        
         match ch {
             'b' => tag_surround("<b>", "</b>", &mut text),
             'i' => tag_surround("<i>", "</i>", &mut text),
@@ -182,11 +190,6 @@ fn single_fmt(file_path: &str, line: usize, spec: &str, text: &str) -> String {
                 error!(file_path, line, err_msg);
                 process::exit(-1);
             }
-        }
-
-        if spec_cnt.insert(ch, true) != None {
-            let warn_msg = format!("format specifier {} is redundant", ch);
-            warning!(file_path, line, warn_msg);
         }
     }
 
