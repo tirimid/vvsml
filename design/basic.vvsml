@@ -1,7 +1,7 @@
 .define_macro {hello} {world}
 .define_macro {world} {hello}
 
-main
+contents
 {
     chapter {this is a big header}
     section {this is a smaller header}
@@ -9,5 +9,42 @@ main
     text {this is just some normal, simple text}
     text {.macro {world} .macro {hello}}
     text {.link {google dot com link} {https://google.com/}}
-    text {.format {bi_}{bold italic subscript} /.format {x} {brQd}/}
+    text {.format {bi_} {bold italic subscript} /.format {x} {brQd}/}
+    list {
+         chapter {chapter in a list}
+         section {section in a list}
+         subsection {subsection in a list}
+         text {text in a list}
+         list {
+              chapter {chapter in a list in a list}
+              text {text in a list in a list}
+         }
+    }
+    table {
+          row {
+              text {.format {b} {name}}
+              text {.format {b} {age}}
+              text {.format {b} {employee id}}
+          }
+          row {
+              text {john}
+              text {41}
+              text {0}
+          }
+          row {
+              text {jane}
+              text {43}
+              text {1}
+          }
+          row {
+              text {charlie}
+              text {27}
+              text {2}
+          }
+          row {
+              text {martin}
+              text {21}
+              text {3}
+          }
+    }
 }

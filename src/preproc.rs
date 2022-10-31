@@ -11,7 +11,7 @@ use crate::lazy_regex;
 use crate::lang_util::{FindRev, CountLines};
 use crate::ipa_trans::IpaTranslate;
 
-#[derive(Logos, PartialEq)]
+#[derive(Logos, PartialEq, Clone, Copy)]
 enum Token {
     #[token(".define_macro")]
     DefineMacro,
@@ -87,23 +87,8 @@ fn protect_seqs(file_path: &str, src: &str) -> String {
     src
 }
 
-fn expect_tok(file_path: &str, src: &str, lex: &mut Lexer<Token>, exp: Token) {
-    match lex.next() {
-        Some(tok) => if tok != exp {
-            let err_msg = format!("expected token {} but found {}", exp, tok);
-            error!(file_path, lang_util::current_line(src, lex), err_msg);
-            process::exit(-1);
-        }
-        None => {
-            let err_msg = format!("expected token {} but found nothing", exp);
-            error!(file_path, lang_util::current_line(src, lex), err_msg);
-            process::exit(-1);
-        }
-    }
-}
-
 fn extract_arg(file_path: &str, src: &str, lex: &mut Lexer<Token>) -> String {
-    expect_tok(file_path, src, lex, Token::BlockStart);
+    lang_util::expect_tok(file_path, src, lex, Token::BlockStart);
     let arg_start = lex.span().end;
     while let Some(tok) = lex.next() {
         match tok {

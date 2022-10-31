@@ -1,4 +1,6 @@
 use std::ops::Range;
+use std::fmt::Display;
+use std::process;
 
 use regex::{Regex, Match};
 use logos::{Logos, Lexer};
@@ -92,4 +94,49 @@ macro_rules! lazy_regex {
 
 pub fn current_line<'a, T: Logos<'a>>(src: &str, lex: &Lexer<'a, T>) -> usize {
     1 + src.count_lines_in(0..lex.span().start)
+}
+
+pub fn expect_tok<'a, T: Logos<'a> + Display + PartialEq>(
+    file_path: &str,
+    src: &str,
+    lex: &mut Lexer<'a, T>,
+    exp: T,
+) {
+    match lex.next() {
+        Some(tok) => if tok != exp {
+            let err_msg = format!("expected token {} but found {}", exp, tok);
+            error!(file_path, current_line(src, lex), err_msg);
+            process::exit(-1);
+        }
+        None => {
+            let err_msg = format!("expected token {} but found nothing", exp);
+            error!(file_path, current_line(src, lex), err_msg);
+            process::exit(-1);
+        }
+    }
+}
+
+pub fn extract_arg<'a, T: Logos<'a> + Display + PartialEq + Copy>(
+    file_path: &str,
+    src: &str,
+    lex: &mut Lexer<'a, T>,
+    block_start: T,
+    block_end: T,
+) -> String {
+    expect_tok(file_path, src, lex, block_start);
+    let arg_start = lex.span().end;
+    while let Some(tok) = lex.next() {
+        if tok == block_start {
+            let err_msg = "unescaped block start in argument";
+            error!(file_path, current_line(src, lex), err_msg);
+            process::exit(-1);
+        } else if tok == block_end {
+            break;
+        } else {
+            continue;
+        }
+    }
+
+    let arg_end = lex.span().start;
+    src[arg_start..arg_end].to_string()
 }
