@@ -54,14 +54,15 @@ impl Display for Token {
 
 fn protect_seqs(file_path: &str, src: &str) -> String {
     lazy_regex! {
-        ESCAPE_CHAR = r"\\[\s\S]?";
+        // `]]$` is a very rare sequence of characters.
+        ESCAPE_CHAR = r"]]\$[\s\S]?";
     }
 
     // protect escape characters.
     let mut src = src.to_string();
     for mat in ESCAPE_CHAR.find_rev(&src.clone()) {
         let line = 1 + src.count_lines_in(0..mat.start());
-        let escape_ch = match src.chars().nth(mat.start() + 1) {
+        let escape_ch = match src.chars().nth(mat.start() + 3) {
             Some(ch) => ch,
             None => {
                 error!(file_path, line, "escaping inescapable character");
@@ -72,7 +73,8 @@ fn protect_seqs(file_path: &str, src: &str) -> String {
         let replacement = match escape_ch {
             '{' => "@#':[;:LB]",
             '}' => "@#':[;:RB]",
-            '\\' => "@#':[;:BS]",
+            ']' => "@#':[;:E1]",
+            '$' => "@#':[;:E2]",
             '.' => "@#':[;:P_]",
             _ => {
                 let err_msg = format!("{} cannot be escaped", escape_ch);
