@@ -69,13 +69,13 @@ fn protect_seqs(file_path: &str, src: &str) -> String {
                 process::exit(-1);
             }
         };
-
+        
         let replacement = match escape_ch {
             '{' => "@#':[;:LB]",
             '}' => "@#':[;:RB]",
-            ']' => "@#':[;:E1]",
-            '$' => "@#':[;:E2]",
+            ']' => "@#':[;:EC]",
             '.' => "@#':[;:P_]",
+            '@' => "@#':[;:A_]",
             _ => {
                 let err_msg = format!("{} cannot be escaped", escape_ch);
                 error!(file_path, line, err_msg);

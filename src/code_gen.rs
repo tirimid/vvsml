@@ -1,6 +1,8 @@
 use std::process;
 
 use crate::parse::Node;
+use crate::lazy_regex;
+use crate::lang_util::FindRev;
 
 fn node_to_html(node: &Node, base: String) -> String {
     let parental = |tag, children: &Vec<Box<Node>>, mut base| {
@@ -43,6 +45,32 @@ fn node_to_html(node: &Node, base: String) -> String {
     }
 }
 
+fn postprocess(html: &str) -> String {
+    lazy_regex! {
+        PROTECTED_SEQ = r"@#':\[;:[A-Z][A-Z0-9_]\]";
+    }
+
+    let mut html = html.to_string();
+    for mat in PROTECTED_SEQ.find_rev(&html.clone()) {
+        let prot_code = html[(mat.start() + 7)..(mat.start() + 9)].to_string();
+        let replacement = match prot_code.as_ref() {
+            "LB" => "{",
+            "RB" => "}",
+            "EC" => "]",
+            "P_" => ".",
+            "A_" => "@",
+            
+            // a user should never encode protected sequences manually.
+            // if they do, and they make a mistake, this will quietly remove it.
+            _ => "",
+        };
+
+        html.replace_range(mat.range(), replacement);
+    }
+
+    html
+}
+
 pub fn generate_html(root: &Node) -> String {
     match root {
         Node::Root(_) => (),
@@ -52,5 +80,5 @@ pub fn generate_html(root: &Node) -> String {
         }
     }
 
-    node_to_html(root, String::new())
+    postprocess(&node_to_html(root, String::new()))
 }
