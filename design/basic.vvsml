@@ -12,6 +12,7 @@ contents
     text {.link {google dot com link} {https://google.com/}}
     text {.format {bi_} {bold italic subscript} /.format {x} {brQd}/}
     text {escape characters ]]${ ]]$} ]]$@ ]]$. ]]$]}
+    text {.unicode {00e0}}
     list {
          chapter {chapter in a list}
          section {section in a list}

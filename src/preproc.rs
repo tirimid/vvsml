@@ -25,6 +25,9 @@ enum Token {
     #[token(".link")]
     Link,
 
+    #[token(".unicode")]
+    Unicode,
+
     #[token("{")]
     BlockStart,
 
@@ -43,6 +46,7 @@ impl Display for Token {
             Self::Macro => "macro substitution",
             Self::Format => "formatting statement",
             Self::Link => "link",
+            Self::Unicode => "unicode codepoint",
             Self::BlockStart => "block start",
             Self::BlockEnd => "block end",
             _ => "other",
@@ -214,6 +218,35 @@ fn link(file_path: &str, src: &str, lex: &mut Lexer<Token>) -> String {
     src
 }
 
+fn unicode(file_path: &str, src: &str, lex: &mut Lexer<Token>) -> String {
+    let unicode_start = lex.span().start;
+    let codepoint = extract_arg(file_path, src, lex);
+    let unicode_end = lex.span().end;
+
+    let codepoint = match u32::from_str_radix(&codepoint, 16) {
+        Ok(ch) => ch,
+        Err(_) => {
+            let err_msg = format!("invalid unicode codepoint: {}", codepoint);
+            error!(file_path, lang_util::current_line(src, lex), err_msg);
+            process::exit(-1);
+        }
+    };
+
+    let ch = match char::from_u32(codepoint) {
+        Some(ch) => ch,
+        None => {
+            let err_msg = "cannot decode unicode codepoint";
+            error!(file_path, lang_util::current_line(src, lex), err_msg);
+            process::exit(-1);
+        }
+    };
+    
+    let mut src = src.to_string();
+    src.replace_range(unicode_start..unicode_end, &ch.to_string());
+    
+    src
+}
+
 pub fn preprocess(file_path: &str, src: &str) -> String {
     let mut src = protect_seqs(file_path, src);
     let mut lex = Token::lexer(&src);
@@ -229,6 +262,7 @@ pub fn preprocess(file_path: &str, src: &str) -> String {
             Token::Macro => r#macro(file_path, &src, &mut lex, &sym_tab),
             Token::Format => format(file_path, &src, &mut lex),
             Token::Link => link(file_path, &src, &mut lex),
+            Token::Unicode => unicode(file_path, &src, &mut lex),
             _ => continue,
         };
 
