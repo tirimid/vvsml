@@ -55,7 +55,7 @@ impl Display for Token {
 fn protect_seqs(file_path: &str, src: &str) -> String {
     lazy_regex! {
         // `]]$` is a very rare sequence of characters.
-        ESCAPE_CHAR = r"]]\$[\s\S]?";
+        ESCAPE_CHAR = r"\]\]\$[\s\S]?";
     }
 
     // protect escape characters.
