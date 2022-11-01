@@ -3,6 +3,7 @@
 
 contents
 {
+    chapter {vvsml test file}
     chapter {this is a big header}
     section {this is a smaller header}
     subsection {this is a much smaller header}
