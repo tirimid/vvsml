@@ -4,6 +4,7 @@ use std::fmt;
 use std::fmt::{Formatter, Display};
 
 use logos::{Logos, Lexer};
+use regex::Regex;
 
 use crate::lang_util;
 use crate::ipa_trans;
@@ -11,7 +12,7 @@ use crate::lazy_regex;
 use crate::lang_util::{FindRev, CountLines};
 use crate::ipa_trans::IpaTranslate;
 
-#[derive(Logos, PartialEq)]
+#[derive(Logos, PartialEq, Clone, Copy)]
 enum Token {
     #[token(".define_macro")]
     DefineMacro,
@@ -24,6 +25,12 @@ enum Token {
 
     #[token(".link")]
     Link,
+
+    #[token(".unicode")]
+    Unicode,
+
+    #[token(".replace_all")]
+    ReplaceAll,
 
     #[token("{")]
     BlockStart,
@@ -43,6 +50,8 @@ impl Display for Token {
             Self::Macro => "macro substitution",
             Self::Format => "formatting statement",
             Self::Link => "link",
+            Self::Unicode => "unicode codepoint",
+            Self::ReplaceAll => "regex replacement",
             Self::BlockStart => "block start",
             Self::BlockEnd => "block end",
             _ => "other",
@@ -54,26 +63,25 @@ impl Display for Token {
 
 fn protect_seqs(file_path: &str, src: &str) -> String {
     lazy_regex! {
-        ESCAPE_CHAR = r"\\[\s\S]?";
+        // `]]$` is a very rare sequence of characters.
+        ESCAPE_CHAR = r"\]\]\$[\s\S]?";
     }
 
     // protect escape characters.
     let mut src = src.to_string();
     for mat in ESCAPE_CHAR.find_rev(&src.clone()) {
         let line = 1 + src.count_lines_in(0..mat.start());
-        let escape_ch = match src.chars().nth(mat.start() + 1) {
-            Some(ch) => ch,
-            None => {
-                error!(file_path, line, "escaping inescapable character");
-                process::exit(-1);
-            }
-        };
-
+        let escape_ch = src.chars().nth(mat.start() + 3).unwrap_or_else(|| {
+            error!(file_path, line, "escaping inescapable character");
+            process::exit(-1);
+        });
+        
         let replacement = match escape_ch {
             '{' => "@#':[;:LB]",
             '}' => "@#':[;:RB]",
-            '\\' => "@#':[;:BS]",
+            ']' => "@#':[;:EC]",
             '.' => "@#':[;:P_]",
+            '@' => "@#':[;:A_]",
             _ => {
                 let err_msg = format!("{} cannot be escaped", escape_ch);
                 error!(file_path, line, err_msg);
@@ -87,38 +95,14 @@ fn protect_seqs(file_path: &str, src: &str) -> String {
     src
 }
 
-fn expect_tok(file_path: &str, src: &str, lex: &mut Lexer<Token>, exp: Token) {
-    match lex.next() {
-        Some(tok) => if tok != exp {
-            let err_msg = format!("expected token {} but found {}", exp, tok);
-            error!(file_path, lang_util::current_line(src, lex), err_msg);
-            process::exit(-1);
-        }
-        None => {
-            let err_msg = format!("expected token {} but found nothing", exp);
-            error!(file_path, lang_util::current_line(src, lex), err_msg);
-            process::exit(-1);
-        }
-    }
-}
-
 fn extract_arg(file_path: &str, src: &str, lex: &mut Lexer<Token>) -> String {
-    expect_tok(file_path, src, lex, Token::BlockStart);
-    let arg_start = lex.span().end;
-    while let Some(tok) = lex.next() {
-        match tok {
-            Token::BlockStart => {
-                let err_msg = "unescaped { in preprocessor argument";
-                error!(file_path, lang_util::current_line(src, lex), err_msg);
-                process::exit(-1);
-            }
-            Token::BlockEnd => break,
-            _ => continue,
-        }
-    }
-
-    let arg_end = lex.span().start;
-    src[arg_start..arg_end].to_string()
+    lang_util::extract_arg(
+        file_path,
+        src,
+        lex,
+        Token::BlockStart,
+        Token::BlockEnd,
+    )
 }
 
 fn define_macro(
@@ -148,14 +132,11 @@ fn r#macro(
     let name = extract_arg(file_path, src, lex);
     let macro_end = lex.span().end;
 
-    let conts = match sym_tab.get(&name) {
-        Some(conts) => conts,
-        None => {
-            let err_msg = format!("macro not defined: {}", name);
-            error!(file_path, lang_util::current_line(src, lex), err_msg);
-            process::exit(-1);
-        }
-    };
+    let conts = sym_tab.get(&name).unwrap_or_else(|| {
+        let err_msg = format!("macro not defined: {}", name);
+        error!(file_path, lang_util::current_line(src, lex), err_msg);
+        process::exit(-1);
+    });
 
     let mut src = src.to_string();
     src.replace_range(macro_start..macro_end, &conts);
@@ -169,10 +150,10 @@ fn single_fmt(file_path: &str, line: usize, spec: &str, text: &str) -> String {
     let tag_surround = |open, close, text: &mut String| {
         *text = format!("{}{}{}", open, text, close);
     };
-
+    
     for ch in spec.chars() {
         // a format specifier is only used once.
-        // as to say, specification `bbbii_^^^^` is the same as `bi_^`.
+        // as to say, specification `bbbii_____` is the same as `bi_`.
         if spec_cnt.insert(ch, true) != None {
             let warn_msg = format!("format specifier {} is redundant", ch);
             warning!(file_path, line, warn_msg);
@@ -185,6 +166,7 @@ fn single_fmt(file_path: &str, line: usize, spec: &str, text: &str) -> String {
             '_' => tag_surround("<sub>", "</sub>", &mut text),
             '^' => tag_surround("<sup>", "</sup>", &mut text),
             'x' => text = ipa_trans::XSAMPA_TRANS.translate(&text),
+            's' => tag_surround("<s>", "</s>", &mut text),
             _ => {
                 let err_msg = format!("invalid format specifier: {}", ch);
                 error!(file_path, line, err_msg);
@@ -227,6 +209,45 @@ fn link(file_path: &str, src: &str, lex: &mut Lexer<Token>) -> String {
     src
 }
 
+fn unicode(file_path: &str, src: &str, lex: &mut Lexer<Token>) -> String {
+    let unicode_start = lex.span().start;
+    let codepoint = extract_arg(file_path, src, lex);
+    let unicode_end = lex.span().end;
+
+    let codepoint = u32::from_str_radix(&codepoint, 16).unwrap_or_else(|_| {
+        let err_msg = format!("invalid unicode codepoint: {}", codepoint);
+        error!(file_path, lang_util::current_line(src, lex), err_msg);
+        process::exit(-1);
+    });
+
+    let ch = char::from_u32(codepoint).unwrap_or_else(|| {
+        let err_msg = "cannot decode unicode codepoint";
+        error!(file_path, lang_util::current_line(src, lex), err_msg);
+        process::exit(-1);
+    });
+    
+    let mut src = src.to_string();
+    src.replace_range(unicode_start..unicode_end, &ch.to_string());
+    src
+}
+
+fn replace_all(file_path: &str, src: &str, lex: &mut Lexer<Token>) -> String {
+    let replace_start = lex.span().start;
+    let regex = extract_arg(file_path, src, lex);
+    let replacement = extract_arg(file_path, src, lex);
+    let replace_end = lex.span().end;
+
+    let regex = Regex::new(&regex).unwrap_or_else(|_| {
+        let err_msg = format!("invalid regex: {}", regex);
+        error!(file_path, lang_util::current_line(src, lex), err_msg);
+        process::exit(-1);
+    });
+
+    let mut src = src.to_string();
+    src.replace_range(replace_start..replace_end, "");
+    regex.replace_all(&src, &replacement).to_string()
+}
+
 pub fn preprocess(file_path: &str, src: &str) -> String {
     let mut src = protect_seqs(file_path, src);
     let mut lex = Token::lexer(&src);
@@ -242,6 +263,8 @@ pub fn preprocess(file_path: &str, src: &str) -> String {
             Token::Macro => r#macro(file_path, &src, &mut lex, &sym_tab),
             Token::Format => format(file_path, &src, &mut lex),
             Token::Link => link(file_path, &src, &mut lex),
+            Token::Unicode => unicode(file_path, &src, &mut lex),
+            Token::ReplaceAll => replace_all(file_path, &src, &mut lex),
             _ => continue,
         };
 
