@@ -116,6 +116,20 @@ pub fn expect_tok<'a, T: Logos<'a> + Display + PartialEq>(
     }
 }
 
+fn skip_block<'a, T: Logos<'a> + PartialEq + Copy>(
+    lex: &mut Lexer<'a, T>,
+    block_start: T,
+    block_end: T,
+) {
+    while let Some(tok) = lex.next() {
+        if tok == block_start {
+            skip_block(lex, block_start, block_end);
+        } else if tok == block_end {
+            break;
+        }
+    }
+}
+
 pub fn extract_arg<'a, T: Logos<'a> + Display + PartialEq + Copy>(
     file_path: &str,
     src: &str,
@@ -125,18 +139,7 @@ pub fn extract_arg<'a, T: Logos<'a> + Display + PartialEq + Copy>(
 ) -> String {
     expect_tok(file_path, src, lex, block_start);
     let arg_start = lex.span().end;
-    while let Some(tok) = lex.next() {
-        if tok == block_start {
-            let err_msg = "unescaped block start in argument";
-            error!(file_path, current_line(src, lex), err_msg);
-            process::exit(-1);
-        } else if tok == block_end {
-            break;
-        } else {
-            continue;
-        }
-    }
-
+    skip_block(lex, block_start, block_end);
     let arg_end = lex.span().start;
     src[arg_start..arg_end].to_string()
 }

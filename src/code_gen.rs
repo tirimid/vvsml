@@ -72,12 +72,9 @@ fn postprocess(html: &str) -> String {
 }
 
 pub fn generate_html(root: &Node) -> String {
-    match root {
-        Node::Root(_) => (),
-        _ => {
-            error!("tried to generate html from non-root node");
-            process::exit(-1);
-        }
+    if !matches!(root, Node::Root(_)) {
+        error!("tried to generate html from non-root node");
+        process::exit(-1);
     }
 
     postprocess(&node_to_html(root, String::new()))

@@ -1,5 +1,7 @@
 .define_macro {hello} {world}
 .define_macro {world} {hello}
+.define_macro {macroed unicode} {.unicode {00e0}}
+.replace_all {THIS IS VERY [BG][AO][DO]D?} {regex replacements}
 
 contents
 {
@@ -11,8 +13,15 @@ contents
     text {.macro {world} .macro {hello}}
     text {.link {google dot com link} {https://google.com/}}
     text {.format {bi_} {bold italic subscript} /.format {x} {brQd}/}
+    text {.format {s} {strikethrough}}
+    text {
+         L = c.format {_} {1}x.format {^} {2}
+           + c.format {_} {2}x
+           + c.format {_} {3}
+    }
     text {escape characters ]]${ ]]$} ]]$@ ]]$. ]]$]}
-    text {.unicode {00e0}}
+    text {THIS IS VERY GOOD, THIS IS VERY BAD}
+    text {.unicode {00e0} .macro {macroed unicode}}
     list {
          chapter {chapter in a list}
          section {section in a list}
