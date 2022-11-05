@@ -55,6 +55,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ipa-translate"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e239d158b4263eb5e76209be9bdbf1a4ffb469141f89e49c1ada4c1c64f77570"
+dependencies = [
+ "lazy_static",
+ "regex",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -152,6 +162,7 @@ name = "vvsml"
 version = "0.1.0"
 dependencies = [
  "colored",
+ "ipa-translate",
  "lazy_static",
  "logos",
  "regex",

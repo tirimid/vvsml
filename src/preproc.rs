@@ -5,12 +5,11 @@ use std::fmt::{Formatter, Display};
 
 use logos::{Logos, Lexer};
 use regex::Regex;
+use ipa_translate;
 
 use crate::lang_util;
-use crate::ipa_trans;
 use crate::lazy_regex;
 use crate::lang_util::{FindRev, CountLines};
-use crate::ipa_trans::IpaTranslate;
 
 #[derive(Logos, PartialEq, Clone, Copy)]
 enum Token {
@@ -165,7 +164,7 @@ fn single_fmt(file_path: &str, line: usize, spec: &str, text: &str) -> String {
             'i' => tag_surround("<i>", "</i>", &mut text),
             '_' => tag_surround("<sub>", "</sub>", &mut text),
             '^' => tag_surround("<sup>", "</sup>", &mut text),
-            'x' => text = ipa_trans::XSAMPA_TRANS.translate(&text),
+            'x' => text = ipa_translate::xsampa_to_ipa(&text),
             's' => tag_surround("<s>", "</s>", &mut text),
             _ => {
                 let err_msg = format!("invalid format specifier: {}", ch);
