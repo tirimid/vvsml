@@ -56,9 +56,9 @@ dependencies = [
 
 [[package]]
 name = "ipa-translate"
-version = "0.1.0"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e239d158b4263eb5e76209be9bdbf1a4ffb469141f89e49c1ada4c1c64f77570"
+checksum = "ced62c5a2b8abf1b0ff4a96ac7d29616088cb08ed57ec95c60aa393e6cb7ddcd"
 dependencies = [
  "lazy_static",
  "regex",
@@ -125,9 +125,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.6.0"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c4eb3267174b8c6c2f654116623910a0fef09c4753f8dd83db29c48a0df988b"
+checksum = "e076559ef8e241f2ae3479e36f97bd5741c0330689e217ad51ce2c76808b868a"
 dependencies = [
  "aho-corasick",
  "memchr",

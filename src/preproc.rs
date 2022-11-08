@@ -165,6 +165,7 @@ fn single_fmt(file_path: &str, line: usize, spec: &str, text: &str) -> String {
             '_' => tag_surround("<sub>", "</sub>", &mut text),
             '^' => tag_surround("<sup>", "</sup>", &mut text),
             'x' => text = ipa_translate::xsampa_to_ipa(&text),
+            'k' => text = ipa_translate::kirshenbaum_to_ipa(&text),
             's' => tag_surround("<s>", "</s>", &mut text),
             _ => {
                 let err_msg = format!("invalid format specifier: {}", ch);
