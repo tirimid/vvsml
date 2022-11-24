@@ -60,4 +60,11 @@ contents
               text {3}
           }
     }
+    ordered_list {
+                 text {First thing}
+                 text {Second thing}
+                 text {Third thing}
+                 text {Fourth thing}
+                 text {Fifth thing}
+    }
 }

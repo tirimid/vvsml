@@ -40,6 +40,7 @@ fn node_to_html(node: &Node, base: String) -> String {
         Node::Subsection(ref data) => with_data("h3", data, base),
         Node::Text(ref data) => with_data("p", data, base),
         Node::List(ref children) => wrapped("ul", "li", children, base),
+        Node::OrderedList(ref children) => wrapped("ol", "li", children, base),
         Node::Table(ref children) => parental("table", children, base),
         Node::Row(ref children) => wrapped("tr", "td", children, base),
     }
