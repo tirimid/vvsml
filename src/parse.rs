@@ -26,6 +26,9 @@ enum Token {
     #[token("list")]
     List,
 
+    #[token("ordered_list")]
+    OrderedList,
+
     #[token("table")]
     Table,
 
@@ -52,6 +55,7 @@ impl Display for Token {
             Self::Subsection => "subsection",
             Self::Text => "text",
             Self::List => "list",
+            Self::OrderedList => "ordered list",
             Self::Table => "table",
             Self::Row => "table row",
             Self::BlockStart => "block start",
@@ -78,6 +82,7 @@ pub enum Node {
     Subsection(String),
     Text(String),
     List(Vec<Box<Node>>),
+    OrderedList(Vec<Box<Node>>),
     Table(Vec<Box<Node>>),
     Row(Vec<Box<Node>>),
 }
@@ -126,6 +131,7 @@ macro_rules! layer_add_parse {
                     Subsection => add_child(subsection(file_path, src, lex)),
                     Text => add_child(text(file_path, src, lex)),
                     List => add_child(list(file_path, src, lex)),
+                    OrderedList =>add_child(ordered_list(file_path, src, lex)),
                     Table => add_child(table(file_path, src, lex)),
                     BlockEnd => break,
                 }
@@ -142,6 +148,7 @@ textual_extract_parse!(subsection, Subsection);
 textual_extract_parse!(text, Text);
 
 layer_add_parse!(list, List);
+layer_add_parse!(ordered_list, OrderedList);
 layer_add_parse!(row, Row);
 layer_add_parse!(contents, Contents);
 
