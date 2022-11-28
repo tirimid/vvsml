@@ -160,13 +160,17 @@ fn single_fmt(file_path: &str, line: usize, spec: &str, text: &str) -> String {
         }
         
         match ch {
+            // standard HTML style specifiers.
             'b' => tag_surround("<b>", "</b>", &mut text),
             'i' => tag_surround("<i>", "</i>", &mut text),
             '_' => tag_surround("<sub>", "</sub>", &mut text),
             '^' => tag_surround("<sup>", "</sup>", &mut text),
-            'x' => text = ipa_translate::xsampa_to_ipa(&text),
-            'k' => text = ipa_translate::kirshenbaum_to_ipa(&text),
             's' => tag_surround("<s>", "</s>", &mut text),
+
+            // linguistics specifiers.
+            'x' => text = ipa_translate::xsampa_to_ipa(&text),
+            'p' => text = ipa_translate::praat_to_ipa(&text),
+            'B' => text = ipa_translate::branner_to_ipa(&text),
             _ => {
                 let err_msg = format!("invalid format specifier: {}", ch);
                 error!(file_path, line, err_msg);

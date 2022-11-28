@@ -56,9 +56,9 @@ dependencies = [
 
 [[package]]
 name = "ipa-translate"
-version = "0.1.3"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9bbccc13badffb1c2884455f42fdba5a8bad34efc94b4f03f6a835367ca0edf"
+checksum = "7c044a3b029ab1e5bc7c857b332d59e62cbd559241b3d1ff5ac4bba174fcd634"
 dependencies = [
  "lazy_static",
  "regex",
