@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::process;
 use std::fmt;
+use std::fs;
 use std::fmt::{Formatter, Display};
 
 use logos::{Logos, Lexer};
@@ -10,6 +11,7 @@ use ipa_translate;
 use crate::lang_util;
 use crate::lazy_regex;
 use crate::lang_util::{FindRev, CountLines};
+use crate::special_ffmt;
 
 #[derive(Logos, PartialEq, Clone, Copy)]
 enum Token {
@@ -31,6 +33,9 @@ enum Token {
     #[token(".replace_all")]
     ReplaceAll,
 
+    #[token(".external_table")]
+    ExternalTable,
+
     #[token("{")]
     BlockStart,
 
@@ -51,6 +56,7 @@ impl Display for Token {
             Self::Link => "link",
             Self::Unicode => "unicode codepoint",
             Self::ReplaceAll => "regex replacement",
+            Self::ExternalTable => "external text table",
             Self::BlockStart => "block start",
             Self::BlockEnd => "block end",
             _ => "other",
@@ -252,6 +258,28 @@ fn replace_all(file_path: &str, src: &str, lex: &mut Lexer<Token>) -> String {
     regex.replace_all(&src, &replacement).to_string()
 }
 
+fn external_table(
+    file_path: &str,
+    src: &str,
+    lex: &mut Lexer<Token>,
+) -> String {
+    let extab_start = lex.span().start;
+    let extab_path = extract_arg(file_path, src, lex);
+    let extab_end = lex.span().end;
+
+    let extab_src = fs::read_to_string(&extab_path).unwrap_or_else(|_| {
+        let err_msg = format!("bad external text table path: {}", extab_path);
+        error!(file_path, lang_util::current_line(src, lex), err_msg);
+        process::exit(-1);
+    });
+
+    let mut src = src.to_string();
+    let replacement = special_ffmt::vvtab_to_vvsml(&extab_src);
+    src.replace_range(extab_start..extab_end, &replacement);
+
+    src
+}
+
 pub fn preprocess(file_path: &str, src: &str) -> String {
     let mut src = protect_seqs(file_path, src);
     let mut lex = Token::lexer(&src);
@@ -269,6 +297,7 @@ pub fn preprocess(file_path: &str, src: &str) -> String {
             Token::Link => link(file_path, &src, &mut lex),
             Token::Unicode => unicode(file_path, &src, &mut lex),
             Token::ReplaceAll => replace_all(file_path, &src, &mut lex),
+            Token::ExternalTable => external_table(file_path, &src, &mut lex),
             _ => continue,
         };
 

@@ -1,0 +1,6 @@
+.format {b} {-} & .format {b} {1} & .format {b} {2} & .format {b} {3} $
+.format {b} {a} & a1              & a2              & a3              $
+.format {b} {b} & b1              & b2              & b3              $
+.format {b} {c} & c1              & c2              & c3              $
+.format {b} {d} & d1              & d2              & d3              $
+.format {b} {*} & \& \$           & \\& \\$         & other stuff     $

@@ -32,7 +32,6 @@ contents
               text {text in a list in a list}
          }
     }
-    text {/.format {k} {ri:li gud}/}
     table {
           row {
               text {.format {b} {name}}
@@ -67,4 +66,5 @@ contents
                  text {Fourth thing}
                  text {Fifth thing}
     }
+    .external_table {design/basic.vvtab}
 }

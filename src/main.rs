@@ -1,6 +1,7 @@
 #[macro_use]
 pub mod lang_util;
 
+pub mod special_ffmt;
 pub mod preproc;
 pub mod parse;
 pub mod code_gen;
